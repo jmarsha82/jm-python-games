@@ -1,1 +1,10 @@
 pygame>=2.5.0
+numpy>=1.26.0
+pandas>=2.2.0
+matplotlib>=3.8.0
+seaborn>=0.13.0
+scikit-learn>=1.4.0
+torch>=2.2.0
+keras>=3.0.0
+tensorflow>=2.16.0
+coverage>=7.5.0

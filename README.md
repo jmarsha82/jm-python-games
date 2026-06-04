@@ -19,7 +19,7 @@ python tetris.py
 
 # Machine Learning Library GUI
 
-This Tkinter app provides tabs for NumPy, Pandas, Matplotlib, Seaborn, Scikit-learn, PyTorch, Keras, and TensorFlow. Each tab has an input area, a run button, and an output area that shows the result and final solution. Pandas, Seaborn, and Scikit-learn also include dataset upload support for CSV, TSV, TXT, JSON, XLS, and XLSX files.
+This CustomTkinter app provides themed tabs for NumPy, Pandas, Matplotlib, Seaborn, Scikit-learn, PyTorch, Keras, and TensorFlow. Each tab has an input area, a run button, an output area that shows the result and final solution, and an image preview panel for chart output. Pandas, Seaborn, and Scikit-learn also include dataset upload support for CSV, TSV, TXT, JSON, XLS, and XLSX files.
 
 ## Run
 

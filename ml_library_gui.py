@@ -4,8 +4,10 @@ import os
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from tkinter import BOTH, END, LEFT, RIGHT, StringVar, Text, Tk, filedialog, ttk
-from tkinter import PhotoImage
+from tkinter import filedialog
+
+import customtkinter as ctk
+from PIL import Image
 
 
 DEFAULT_NUMBERS = "1, 2, 3, 4, 5"
@@ -77,6 +79,15 @@ def result_image_path(result):
     if isinstance(result, RunResult) and result.image_path:
         return Path(result.image_path)
     return None
+
+
+def scaled_preview_size(image_size, max_size=(620, 340)):
+    width, height = image_size
+    max_width, max_height = max_size
+    if width <= 0 or height <= 0:
+        raise ValueError("Image dimensions must be positive.")
+    scale = min(max_width / width, max_height / height, 1)
+    return int(width * scale), int(height * scale)
 
 
 def run_numpy_demo(text, np_module=None):
@@ -244,7 +255,8 @@ class MachineLearningLibraryApp:  # pragma: no cover - interactive Tkinter UI
     def __init__(self, root):
         self.root = root
         self.root.title("Python Machine Learning Library Runner")
-        self.root.geometry("980x720")
+        self.root.geometry("1180x820")
+        self.root.minsize(980, 700)
         self.upload_paths = {}
         self.inputs = {}
         self.outputs = {}
@@ -252,52 +264,152 @@ class MachineLearningLibraryApp:  # pragma: no cover - interactive Tkinter UI
         self.image_labels = {}
         self.image_references = {}
 
-        notebook = ttk.Notebook(root)
-        notebook.pack(fill=BOTH, expand=True, padx=10, pady=10)
+        self.root.grid_columnconfigure(0, weight=1)
+        self.root.grid_rowconfigure(0, weight=1)
+
+        shell = ctk.CTkFrame(root, fg_color="#0f172a", corner_radius=0)
+        shell.grid(row=0, column=0, sticky="nsew")
+        shell.grid_columnconfigure(0, weight=1)
+        shell.grid_rowconfigure(1, weight=1)
+
+        header = ctk.CTkFrame(shell, fg_color="transparent")
+        header.grid(row=0, column=0, sticky="ew", padx=22, pady=(18, 8))
+        header.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(
+            header,
+            text="Machine Learning Library Runner",
+            font=ctk.CTkFont(size=26, weight="bold"),
+            text_color="#f8fafc",
+        ).grid(row=0, column=0, sticky="w")
+        ctk.CTkLabel(
+            header,
+            text="Run focused Python ML demos, inspect text output, and preview generated charts.",
+            font=ctk.CTkFont(size=14),
+            text_color="#94a3b8",
+        ).grid(row=1, column=0, sticky="w", pady=(4, 0))
+
+        tabview = ctk.CTkTabview(
+            shell,
+            fg_color="#111827",
+            segmented_button_fg_color="#1e293b",
+            segmented_button_selected_color="#2563eb",
+            segmented_button_selected_hover_color="#1d4ed8",
+            segmented_button_unselected_color="#334155",
+            segmented_button_unselected_hover_color="#475569",
+            corner_radius=8,
+        )
+        tabview.grid(row=1, column=0, sticky="nsew", padx=22, pady=(8, 22))
 
         for name, runner, sample, accepts_upload in TAB_CONFIGS:
-            self._create_tab(notebook, name, runner, sample, accepts_upload)
+            self._create_tab(tabview, name, runner, sample, accepts_upload)
 
-    def _create_tab(self, notebook, name, runner, sample, accepts_upload):
-        tab = ttk.Frame(notebook, padding=12)
-        notebook.add(tab, text=name)
+    def _create_tab(self, tabview, name, runner, sample, accepts_upload):
+        tabview.add(name)
+        tab = tabview.tab(name)
+        tab.configure(fg_color="#111827")
+        tab.grid_columnconfigure(0, weight=1)
+        tab.grid_columnconfigure(1, weight=1)
+        tab.grid_rowconfigure(1, weight=1)
 
-        ttk.Label(tab, text="Input").pack(anchor="w")
-        input_box = Text(tab, height=8, wrap="word")
+        input_panel = ctk.CTkFrame(tab, fg_color="#1f2937", corner_radius=8)
+        input_panel.grid(row=0, column=0, columnspan=2, sticky="ew", padx=12, pady=12)
+        input_panel.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(
+            input_panel,
+            text=f"{name} input",
+            font=ctk.CTkFont(size=15, weight="bold"),
+            text_color="#e5e7eb",
+        ).grid(row=0, column=0, sticky="w", padx=14, pady=(12, 4))
+        input_box = ctk.CTkTextbox(
+            input_panel,
+            height=135,
+            wrap="word",
+            border_width=1,
+            border_color="#334155",
+            fg_color="#0f172a",
+            text_color="#e5e7eb",
+        )
         input_box.insert("1.0", sample)
-        input_box.pack(fill=BOTH, expand=False, pady=(4, 10))
+        input_box.grid(row=1, column=0, sticky="ew", padx=14, pady=(4, 12))
         self.inputs[name] = input_box
 
-        controls = ttk.Frame(tab)
-        controls.pack(fill="x", pady=(0, 10))
+        controls = ctk.CTkFrame(input_panel, fg_color="transparent")
+        controls.grid(row=2, column=0, sticky="ew", padx=14, pady=(0, 14))
+        controls.grid_columnconfigure(1, weight=1)
 
         if accepts_upload:
             self.upload_paths[name] = None
-            upload_text = StringVar(value="No dataset selected")
+            upload_text = ctk.StringVar(value="No dataset selected")
             self.upload_labels[name] = upload_text
-            ttk.Button(
+            ctk.CTkButton(
                 controls,
                 text="Upload Dataset",
                 command=lambda tab_name=name: self._upload_file(tab_name),
-            ).pack(side=LEFT)
-            ttk.Label(controls, textvariable=upload_text).pack(side=LEFT, padx=10)
+                width=150,
+                fg_color="#0f766e",
+                hover_color="#115e59",
+            ).grid(row=0, column=0, sticky="w")
+            ctk.CTkLabel(
+                controls,
+                textvariable=upload_text,
+                text_color="#cbd5e1",
+                anchor="w",
+            ).grid(row=0, column=1, sticky="ew", padx=12)
 
-        ttk.Button(
+        ctk.CTkButton(
             controls,
             text=f"Run {name}",
             command=lambda tab_name=name, tab_runner=runner: self._run_tab(
                 tab_name, tab_runner
             ),
-        ).pack(side=RIGHT)
+            height=36,
+            fg_color="#2563eb",
+            hover_color="#1d4ed8",
+        ).grid(row=0, column=2, sticky="e")
 
-        ttk.Label(tab, text="Output and final solution").pack(anchor="w")
-        output_box = Text(tab, height=18, wrap="word")
-        output_box.pack(fill=BOTH, expand=True, pady=(4, 0))
+        output_panel = ctk.CTkFrame(tab, fg_color="#1f2937", corner_radius=8)
+        output_panel.grid(row=1, column=0, sticky="nsew", padx=(12, 6), pady=(0, 12))
+        output_panel.grid_columnconfigure(0, weight=1)
+        output_panel.grid_rowconfigure(1, weight=1)
+
+        ctk.CTkLabel(
+            output_panel,
+            text="Output and final solution",
+            font=ctk.CTkFont(size=15, weight="bold"),
+            text_color="#e5e7eb",
+        ).grid(row=0, column=0, sticky="w", padx=14, pady=(12, 4))
+        output_box = ctk.CTkTextbox(
+            output_panel,
+            wrap="word",
+            border_width=1,
+            border_color="#334155",
+            fg_color="#0f172a",
+            text_color="#e5e7eb",
+        )
+        output_box.grid(row=1, column=0, sticky="nsew", padx=14, pady=(4, 14))
         self.outputs[name] = output_box
 
-        ttk.Label(tab, text="Image preview").pack(anchor="w", pady=(10, 0))
-        image_label = ttk.Label(tab, text="No image output for this run.")
-        image_label.pack(fill=BOTH, expand=False, pady=(4, 0))
+        image_panel = ctk.CTkFrame(tab, fg_color="#1f2937", corner_radius=8)
+        image_panel.grid(row=1, column=1, sticky="nsew", padx=(6, 12), pady=(0, 12))
+        image_panel.grid_columnconfigure(0, weight=1)
+        image_panel.grid_rowconfigure(1, weight=1)
+
+        ctk.CTkLabel(
+            image_panel,
+            text="Image preview",
+            font=ctk.CTkFont(size=15, weight="bold"),
+            text_color="#e5e7eb",
+        ).grid(row=0, column=0, sticky="w", padx=14, pady=(12, 4))
+        image_label = ctk.CTkLabel(
+            image_panel,
+            text="No image output for this run.",
+            text_color="#94a3b8",
+            fg_color="#0f172a",
+            corner_radius=8,
+        )
+        image_label.grid(row=1, column=0, sticky="nsew", padx=14, pady=(4, 14))
         self.image_labels[name] = image_label
 
     def _upload_file(self, name):
@@ -313,9 +425,9 @@ class MachineLearningLibraryApp:  # pragma: no cover - interactive Tkinter UI
             self.upload_labels[name].set(path)
 
     def _run_tab(self, name, runner):
-        text = self.inputs[name].get("1.0", END)
+        text = self.inputs[name].get("1.0", "end")
         output_box = self.outputs[name]
-        output_box.delete("1.0", END)
+        output_box.delete("1.0", "end")
         try:
             upload_path = self.upload_paths.get(name)
             if upload_path is not None:
@@ -334,13 +446,20 @@ class MachineLearningLibraryApp:  # pragma: no cover - interactive Tkinter UI
             image_label.configure(image="", text="No image output for this run.")
             return
 
-        image = PhotoImage(file=image_path)
+        pil_image = Image.open(image_path)
+        image = ctk.CTkImage(
+            light_image=pil_image,
+            dark_image=pil_image,
+            size=scaled_preview_size(pil_image.size),
+        )
         self.image_references[name] = image
         image_label.configure(image=image, text="")
 
 
 def main():  # pragma: no cover - interactive Tkinter UI
-    root = Tk()
+    ctk.set_appearance_mode("dark")
+    ctk.set_default_color_theme("blue")
+    root = ctk.CTk()
     MachineLearningLibraryApp(root)
     root.mainloop()
 

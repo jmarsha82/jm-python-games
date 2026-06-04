@@ -23,6 +23,13 @@ class DependencyTests(unittest.TestCase):
 
 
 class DemoOutputTests(unittest.TestCase):
+    def test_scaled_preview_size_preserves_aspect_ratio(self):
+        self.assertEqual(app.scaled_preview_size((1240, 680)), (620, 340))
+
+    def test_scaled_preview_size_rejects_invalid_dimensions(self):
+        with self.assertRaisesRegex(ValueError, "positive"):
+            app.scaled_preview_size((0, 200))
+
     def test_numpy_demo_returns_final_solution(self):
         class FakeArray(list):
             @property

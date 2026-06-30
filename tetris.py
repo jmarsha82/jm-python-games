@@ -137,6 +137,10 @@ def draw_piece(surface, piece):
             draw_cell(surface, x, y, piece.color)
 
 
+def restart_button_rect():
+    return pygame.Rect(COLUMNS * CELL_SIZE // 2 - 88, HEIGHT // 2 + 56, 176, 38)
+
+
 def draw_sidebar(surface, font, small_font, next_piece, score, level, game_over):
     left = COLUMNS * CELL_SIZE + 20
     surface.blit(font.render("TETRIS", True, WHITE), (left, 24))
@@ -165,11 +169,14 @@ def draw_sidebar(surface, font, small_font, next_piece, score, level, game_over)
         overlay.fill((0, 0, 0, 170))
         surface.blit(overlay, (0, 0))
         text = font.render("GAME OVER", True, WHITE)
-        restart = small_font.render("Press R to restart", True, WHITE)
+        button = restart_button_rect()
+        pygame.draw.rect(surface, PANEL, button, border_radius=8)
+        pygame.draw.rect(surface, WHITE, button, 1, border_radius=8)
+        restart = small_font.render("Restart", True, WHITE)
         surface.blit(text, text.get_rect(center=(COLUMNS * CELL_SIZE // 2, HEIGHT // 2 - 20)))
         surface.blit(
             restart,
-            restart.get_rect(center=(COLUMNS * CELL_SIZE // 2, HEIGHT // 2 + 24)),
+            restart.get_rect(center=button.center),
         )
 
 
@@ -197,6 +204,11 @@ def main():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+
+            if event.type == pygame.MOUSEBUTTONDOWN and game_over and restart_button_rect().collidepoint(event.pos):
+                board, current_piece, next_piece, score, level, game_over = reset_game()
+                last_drop = now
+                continue
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:

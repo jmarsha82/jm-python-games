@@ -1,0 +1,94 @@
+name: Unit Tests
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: unit-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.11"
+          - "3.12"
+
+    env:
+      MPLBACKEND: Agg
+      SDL_VIDEODRIVER: dummy
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Compile Python files
+        run: python -m compileall lennys_adventure_core.py lennys_magical_adventure.py ml_library_gui.py tetris.py tests
+
+      - name: Run unit tests with coverage
+        run: |
+          python -m coverage run -m unittest discover -s tests
+          python -m coverage report --show-missing > coverage.txt
+          cat coverage.txt
+          python -m coverage xml
+
+      - name: Add coverage summary
+        run: |
+          echo "### Coverage" >> "$GITHUB_STEP_SUMMARY"
+          echo '```text' >> "$GITHUB_STEP_SUMMARY"
+          cat coverage.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage XML
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-python-${{ matrix.python-version }}
+          path: |
+            coverage.xml
+            coverage.txt
+
+  codeql:
+    name: CodeQL
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3

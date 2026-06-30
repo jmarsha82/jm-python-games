@@ -17,6 +17,38 @@ python tetris.py
 - Space: hard drop
 - R: restart
 
+## Unit tests
+
+All unit tests live in the unified `tests/` directory. Run the full test suite locally with:
+
+```powershell
+python -m unittest discover -s tests
+```
+
+To run the same coverage-backed command used by CI:
+
+```powershell
+python -m coverage run -m unittest discover -s tests
+python -m coverage report --show-missing
+```
+
+The Tetris tests cover shape colors, piece rotation, board bounds, collision checks, line clearing, locking pieces, and reset state.
+
+## GitHub Actions pipeline
+
+The repository includes a workflow at `.github/workflows/tests.yml`. It runs on pushes to `main` or `master`, pull requests, and manual `workflow_dispatch` runs.
+
+The pipeline:
+
+- Runs the unit suite on Python 3.11 and 3.12.
+- Uses pip dependency caching through `actions/setup-python`.
+- Installs `requirements.txt`.
+- Compiles the app modules and `tests/` with `python -m compileall`.
+- Runs `unittest` with `coverage`.
+- Adds a coverage table to the GitHub Actions job summary.
+- Uploads `coverage.xml` and `coverage.txt` as workflow artifacts for each Python version.
+- Runs GitHub CodeQL analysis for Python security and quality scanning.
+
 # Machine Learning Library GUI
 
 This CustomTkinter app provides themed tabs for NumPy, Pandas, Matplotlib, Seaborn, Scikit-learn, PyTorch, Keras, and TensorFlow. Each tab has an input area, a run button, an output area that shows the result and final solution, and an image preview panel for chart output. Pandas, Seaborn, and Scikit-learn also include dataset upload support for CSV, TSV, TXT, JSON, XLS, and XLSX files.
